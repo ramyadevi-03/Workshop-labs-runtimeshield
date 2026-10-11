@@ -1,0 +1,11 @@
+# Semantic Cache & Clearance Filter Configuration
+semantic_cache:
+  enabled: true
+  ttl_seconds: 3600
+  redis_url: "redis://localhost:6379/0"
+
+clearance_filter:
+  enabled: true
+  listen_for_webhooks: true
+  webhook_endpoint: "/api/webhooks/keycloak"
+  on_role_change: "INVALIDATE_USER_CACHE"

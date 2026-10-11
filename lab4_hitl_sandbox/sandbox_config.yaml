@@ -1,0 +1,15 @@
+# OpenSandbox & HITL Configuration
+hitl_policies:
+  - action_type: "bash_execution"
+    require_approval: true
+    timeout_seconds: 300
+    notify_admins: true
+
+execution_environment:
+  default_runtime: "opensandbox"
+  container_engine: "docker"
+  isolation_type: "gvisor"
+  resource_limits:
+    cpus: "0.5"
+    memory: "512m"
+    network_access: false

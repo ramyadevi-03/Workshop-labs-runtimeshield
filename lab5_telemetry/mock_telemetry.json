@@ -1,0 +1,35 @@
+[
+  {
+    "trace_id": "req-9a8b-7c6d",
+    "timestamp": "2026-10-07T10:15:22Z",
+    "user": "anika",
+    "role": "user",
+    "action": "read_file",
+    "resource": "/executive/strategic_supplier_exit_plan.pdf",
+    "decision": "DENY",
+    "reason": "RBAC Violation: user lacks admin role",
+    "fraud_score": 10
+  },
+  {
+    "trace_id": "req-4f5e-6d7c",
+    "timestamp": "2026-10-07T11:42:10Z",
+    "user": "anika",
+    "role": "user",
+    "action": "read_file",
+    "resource": "mock_data/system_config.yaml",
+    "decision": "DENY",
+    "reason": "HONEYPOT TRIGGERED: HP-001 (Block System Config Access)",
+    "fraud_score": 85
+  },
+  {
+    "trace_id": "req-1b2a-3c4d",
+    "timestamp": "2026-10-07T14:05:33Z",
+    "user": "anika",
+    "role": "user",
+    "action": "bash_execution",
+    "resource": "mock_scripts/update_network_daemon.sh",
+    "decision": "ALLOW",
+    "reason": "HITL Approved by Admin. Executed in OpenSandbox.",
+    "fraud_score": 5
+  }
+]

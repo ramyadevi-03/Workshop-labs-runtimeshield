@@ -1,0 +1,5 @@
+# DO NOT SHARE - INTERNAL SYSTEM CONFIGURATION
+database_url: "postgres://admin:SuperSecretPassword123@internal-db:5432/production"
+api_keys:
+  openai: "sk-proj-xyz123456789"
+  stripe: "rk_live_987654321"
