@@ -5,7 +5,7 @@ rules:
     description: "Triggers if the AI attempts to read internal infrastructure configuration."
     action: "read_file"
     resource_patterns:
-      - ".*system_config\.yaml.*"
-      - ".*\.env.*"
+      - .*system_config\.yaml.*
+      - .*\.env.*
     enforcement: "DENY"
     fraud_score_increase: 50
