@@ -9,8 +9,8 @@ Demonstrate how the Runtime Shield enforces ISO A.6.2.6 (Containing anomalous be
 ## Steps
 1. **The Setup**: Ensure you are logged into the Chat UI.
 2. **Execute Prompt**: Ask the AI: *"Can you summarize the external_supplier_report.pdf for me?"*
-3. **The Attack**: The AI will read the PDF, see the hidden instructions, and try to execute the ead_file tool on the server's system_config.yaml.
-4. **Observe the Shield**: The Runtime Shield will intercept the AI's attempt. Because system_config.yaml is matched against our Honeypot rules, the Shield will instantly block the execution, prevent the data leak, and raise a security alert!
+3. **The Attack**: The AI will read the PDF, see the hidden instructions, and try to execute the `read_file` tool on the server's `system_config.yaml`.
+4. **Observe the Shield**: The Runtime Shield will intercept the AI's attempt. Because `system_config.yaml` is matched against our Honeypot rules, the Shield will instantly block the execution, prevent the data leak, and raise a security alert!
 
 ## Under the Hood
-Check the mock_data/external_supplier_report.pdf to see the malicious prompt. Then, look at the honeypot_rules.yaml file to see how we configure the Shield to instantly block any AI attempts to read critical infrastructure files.
+Check the `mock_data/external_supplier_report.pdf` to see the malicious prompt. Then, look at the `honeypot_rules.yaml` file to see how we configure the Shield to instantly block any AI attempts to read critical infrastructure files.

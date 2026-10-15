@@ -2,47 +2,53 @@ version: '3.8'
 
 services:
   gateway:
-    image: runtimeshield/gateway:latest
-    container_name: 	enant_gateway
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    image: runtimeshield/gateway:workshop
+    container_name: ${TENANT_ID:-tenant}_gateway
     environment:
-      - TENANT_ID={TENANT_ID}
+      - TENANT_ID=${TENANT_ID:-default}
       - KEYCLOAK_URL=http://keycloak:8080
       - OPA_URL=http://opa:8181
     ports:
-      - "{GATEWAY_PORT}:5000"
+      - "${GATEWAY_PORT:-5000}:5000"
     volumes:
-      - ./labs:/app/labs
+      - ./:/app/labs
     depends_on:
       - keycloak
       - opa
 
   opa:
     image: openpolicyagent/opa:latest
-    container_name: 	enant_opa
+    container_name: ${TENANT_ID:-tenant}_opa
     command:
       - "run"
       - "--server"
       - "--log-level=debug"
     volumes:
-      - ./labs/lab1_rbac/rbac_policy.rego:/policies/rbac_policy.rego
+      - ./lab1_rbac/rbac_policy.rego:/policies/rbac_policy.rego
     ports:
-      - "{OPA_PORT}:8181"
+      - "${OPA_PORT:-8181}:8181"
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
-    container_name: 	enant_keycloak
+    container_name: ${TENANT_ID:-tenant}_keycloak
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
     command:
       - "start-dev"
     ports:
-      - "{KC_PORT}:8080"
+      - "${KC_PORT:-8080}:8080"
 
   chat_ui:
-    image: runtimeshield/chat-ui:latest
-    container_name: 	enant_ui
+    build:
+      context: ./chat_ui
+      dockerfile: Dockerfile
+    image: runtimeshield/chat-ui:workshop
+    container_name: ${TENANT_ID:-tenant}_ui
     environment:
       - GATEWAY_URL=http://gateway:5000
     ports:
-      - "{UI_PORT}:8501"
+      - "${UI_PORT:-8501}:8501"

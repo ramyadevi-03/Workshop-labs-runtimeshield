@@ -8,9 +8,9 @@ Demonstrate how the Runtime Shield enforces ISO A.6.2.8 (Recording of Event Logs
 
 ## Steps
 1. **The Setup**: You act as the CISO. You need to review the logs.
-2. **Open Dashboard**: Run the iew_telemetry.py script. This simulates opening the live Telemetry Dashboard on Port 9090.
+2. **Open Dashboard**: Switch to the **Telemetry & Audit Trail** tab in the UI, or run `python view_telemetry.py`.
 3. **Analyze the Incident**: Search for the "DENY" events or high "Fraud Scores". 
-4. **Reconstruct the Timeline**: You will be able to see the exact trace ID, the user involved (Anika), the malicious tool requested (get_system_config), and the cryptographic hash of the blocked action.
+4. **Reconstruct the Timeline**: You will be able to see the exact trace ID, the user involved (Anika), the malicious tool requested (`read_file`), the intercepted honeypot file (`system_config.yaml`), and the reason for blockage.
 
 ## Under the Hood
-The Gateway uses a non-blocking background queue to write every single OPA decision directly into a SQL database. Check the mock_telemetry.json file to see the structured JSON format of the logs that the dashboard visualizes.
+The Gateway logs every single OPA decision, honeypot match, and tool interception into structured JSON audit records. Check the `mock_telemetry.json` file or query the Gateway endpoint `GET /api/telemetry` to see the schema.
