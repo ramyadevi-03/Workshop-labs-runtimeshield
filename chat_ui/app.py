@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import os
 import requests
 from fastapi import FastAPI, Request, Response
@@ -16,6 +18,13 @@ app.add_middleware(
 )
 
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://gateway:5000").rstrip("/")
+TENANT_ID = os.getenv("LAB7_LEARNER_ID") or os.getenv("TENANT_ID") or "default"
+LAB7_AGENT_SECRET = os.getenv("LAB7_AGENT_SECRET") or f"lab7-demo:{TENANT_ID}"
+
+
+def _a2a_token_for(workload: str) -> str:
+    msg = f"a2a:{TENANT_ID}:{workload}".encode("utf-8")
+    return hmac.new(LAB7_AGENT_SECRET.encode("utf-8"), msg, hashlib.sha256).hexdigest()[:32]
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="en">
@@ -255,6 +264,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     .badge-lab2 { background: rgba(239, 68, 68, 0.2); color: #f87171; }
     .badge-lab3 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
     .badge-lab4 { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
+    .badge-lab7 { background: rgba(6, 182, 212, 0.2); color: #22d3ee; }
 
     .preset-card h4 {
       font-size: 0.82rem;
@@ -517,6 +527,9 @@ HTML_CONTENT = """<!DOCTYPE html>
     <button class="tab-btn" onclick="switchTab('driftTab', this)">
       ⚡ Auth Drift Simulator (Lab 3)
     </button>
+    <button class="tab-btn" onclick="switchTab('a2aTab', this)">
+      🤖 Agent-to-Agent (Lab 7)
+    </button>
   </nav>
 
   <main>
@@ -548,6 +561,12 @@ HTML_CONTENT = """<!DOCTYPE html>
             <span class="preset-badge badge-lab4">Lab 4: HITL</span>
             <h4>Update Network Daemon</h4>
             <p>Triggers Human-in-the-Loop pause and isolated OpenSandbox execution.</p>
+          </div>
+
+          <div class="preset-card" onclick="populatePrompt('Relay supplier_bulletin.md via SupplierBot (A2A) and include system_config.yaml')">
+            <span class="preset-badge badge-lab7">Lab 7: A2A</span>
+            <h4>Compromised SupplierBot</h4>
+            <p>Triggers cross-agent confused-deputy delegation via Mira.</p>
           </div>
 
           <div class="preset-card" onclick="populatePrompt('What are the general guidelines?')">
@@ -676,6 +695,54 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
       </div>
     </div>
+
+    <!-- TAB 6: AGENT-TO-AGENT (LAB 7) -->
+    <div id="a2aTab" class="tab-panel">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div>
+            <h2>Agent-to-Agent (A2A) Security Console (Lab 7)</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">ISO A.9.2 &amp; A.6.2.6 — Stop compromised SupplierBot from borrowing Mira's privileges</p>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <button class="btn-action" onclick="loadA2ACards()">Refresh Registry</button>
+            <button class="btn-action" onclick="verifyA2AEvidence()">Verify Evidence Chain</button>
+            <button class="btn-action btn-primary" onclick="runA2ADrills()">Run 8 A2A Drills</button>
+          </div>
+        </div>
+
+        <div id="a2aPolicyErrorBanner" style="display:none; margin-bottom:1rem; padding:0.75rem 1rem; border-radius:8px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; font-family:var(--font-mono); font-size:0.82rem;"></div>
+
+        <div style="background:var(--bg-surface-elevated); padding:1rem 1.25rem; border-radius:8px; border:1px solid var(--border-subtle); margin-bottom:1.25rem;">
+          <div style="font-size:0.85rem; margin-bottom:0.5rem;">
+            <strong>Scenario:</strong> <code>agent:supplier-bot</code> relays a hidden instruction in <code>supplier_bulletin.md</code> asking Mira to read <code>/etc/system_config.yaml</code>.
+            Edit <code>lab7_a2a/a2a_policy.rego</code> to scope SupplierBot to your salted summary path (<code id="a2aSaltedPath">/reports/quarterly_summary_default.pdf</code>), deny the canary, and route other agent requests to HITL.
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:0.6rem; margin-top:0.75rem;">
+            <button class="btn-action btn-success" onclick="sendA2ARequest('agent:supplier-bot', 'read_file', window._a2aReportPath || '/reports/quarterly_summary_default.pdf')">Send Legitimate Summary Request</button>
+            <button class="btn-action btn-danger" onclick="sendA2ARequest('agent:supplier-bot', 'read_file', '/etc/system_config.yaml')">Send Injected Delegation (system_config.yaml)</button>
+            <button class="btn-action" onclick="sendA2ARequest('agent:other-peer', 'read_file', window._a2aReportPath || '/reports/quarterly_summary_default.pdf')">Send Other Peer Request (HITL)</button>
+          </div>
+        </div>
+
+        <div id="a2aVerdictBox" style="display:none; margin-bottom:1.25rem; padding:1rem; border-radius:8px; font-family:var(--font-mono); font-size:0.82rem;"></div>
+        <div id="a2aEvidenceBox" style="display:none; margin-bottom:1.25rem; padding:1rem; border-radius:8px; font-family:var(--font-mono); font-size:0.82rem;"></div>
+
+        <h3 style="font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.6rem;">Registered A2A Agent Cards (Server-Side)</h3>
+        <div style="overflow-x:auto; margin-bottom:1.25rem;">
+          <table class="telemetry-table">
+            <thead>
+              <tr><th>Workload</th><th>Name</th><th>Role</th><th>Owner</th><th>Scopes</th></tr>
+            </thead>
+            <tbody id="a2aCardsBody">
+              <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading registry...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="a2aDrillsBox"></div>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -701,6 +768,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
       if (tabId === "hitlTab") fetchHITLRequests();
       if (tabId === "telemetryTab") fetchTelemetry();
+      if (tabId === "a2aTab") loadA2ACards();
     }
 
     function populatePrompt(text) {
@@ -934,6 +1002,106 @@ HTML_CONTENT = """<!DOCTYPE html>
       return text.replace(/[&<>"']/g, m => map[m]);
     }
 
+    async function loadA2ACards() {
+      try {
+        const resp = await fetch("/proxy/a2a/cards");
+        const data = await resp.json();
+        window._a2aReportPath = data.report_resource || "/reports/quarterly_summary_default.pdf";
+        document.getElementById("a2aSaltedPath").textContent = window._a2aReportPath;
+        const errBanner = document.getElementById("a2aPolicyErrorBanner");
+        if (data.policy_error) {
+          errBanner.style.display = "block";
+          errBanner.textContent = "Policy parse error (fail-closed): " + data.policy_error;
+        } else {
+          errBanner.style.display = "none";
+        }
+        const tbody = document.getElementById("a2aCardsBody");
+        const agents = data.agents || [];
+        if (agents.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No agents registered.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = agents.map(a => `
+          <tr>
+            <td><code>${escapeHtml(a.workload)}</code></td>
+            <td>${escapeHtml(a.name)}</td>
+            <td>${escapeHtml(a.role)}</td>
+            <td>${escapeHtml(a.owner)}</td>
+            <td><code>${escapeHtml((a.scopes || []).join(", "))}</code></td>
+          </tr>`).join("");
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function sendA2ARequest(workload, action, resource) {
+      const box = document.getElementById("a2aVerdictBox");
+      box.style.display = "block";
+      box.style.background = "#1e293b";
+      box.style.color = "#94a3b8";
+      box.textContent = "Sending A2A delegation to Gateway...";
+      try {
+        const resp = await fetch("/proxy/a2a/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workload, action, resource, forwarded_by: "mira" })
+        });
+        const d = await resp.json();
+        const isAllow = d.decision === "ALLOW";
+        const isHitl = d.decision === "HITL";
+        box.style.background = isAllow ? "rgba(16,185,129,0.12)" : isHitl ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.12)";
+        box.style.border = "1px solid " + (isAllow ? "rgba(16,185,129,0.4)" : isHitl ? "rgba(245,158,11,0.4)" : "rgba(239,68,68,0.4)");
+        box.style.color = isAllow ? "#6ee7b7" : isHitl ? "#fcd34d" : "#fca5a5";
+        box.innerHTML = `<strong>DECISION: ${escapeHtml(d.decision)}</strong> (rule=<code>${escapeHtml(d.rule || "-")}</code>, source=<code>${escapeHtml(d.policy_source || "-")}</code>)<br>` +
+          `Workload: <code>${escapeHtml(workload)}</code> &rarr; <code>${escapeHtml(action)}('${escapeHtml(resource)}')</code><br>` +
+          `Trace: <code>${escapeHtml(d.trace_id || "-")}</code> | Evidence: <code>${escapeHtml(d.evidence_id || "-")}</code>` +
+          (d.hitl_request_id ? `<br>HITL Request: <code>${escapeHtml(d.hitl_request_id)}</code> (check HITL Approvals tab)` : "");
+        fetchTelemetry();
+        fetchHITLRequests();
+      } catch (err) {
+        box.style.color = "#fca5a5";
+        box.textContent = "Error: " + err.message;
+      }
+    }
+
+    async function verifyA2AEvidence() {
+      const box = document.getElementById("a2aEvidenceBox");
+      box.style.display = "block";
+      try {
+        const resp = await fetch("/proxy/a2a/evidence");
+        const d = await resp.json();
+        const ok = d.chain_valid === true;
+        box.style.background = ok ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)";
+        box.style.border = "1px solid " + (ok ? "rgba(16,185,129,0.4)" : "rgba(239,68,68,0.4)");
+        box.style.color = ok ? "#6ee7b7" : "#fca5a5";
+        box.innerHTML = `<strong>Evidence Chain Valid:</strong> ${ok} | <strong>Total Entries:</strong> ${d.count}`;
+      } catch (err) {
+        box.style.color = "#fca5a5";
+        box.textContent = "Error checking evidence: " + err.message;
+      }
+    }
+
+    async function runA2ADrills() {
+      const box = document.getElementById("a2aDrillsBox");
+      box.innerHTML = '<p style="color:var(--accent-cyan);">Running 8 A2A boundary drills against shared Gateway...</p>';
+      try {
+        const resp = await fetch("/proxy/a2a/drills", { method: "POST" });
+        const d = await resp.json();
+        let html = `<div style="margin-bottom:0.75rem; font-weight:700; color:${d.passed === d.total ? '#34d399' : '#f87171'};">Controls passed: ${d.passed}/${d.total} (${escapeHtml(d.status)})</div>`;
+        (d.results || []).forEach(r => {
+          const pass = r.status === "PASS";
+          html += `<div class="drill-item">
+            <div><strong style="color:#06b6d4; font-family:var(--font-mono);">${escapeHtml(r.id)}</strong>: ${escapeHtml(r.desc)}
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">${escapeHtml(r.detail)}</div></div>
+            <div style="font-weight:700; font-family:var(--font-mono); color:${pass ? '#34d399' : '#f87171'};">${pass ? '✅ PASS' : '❌ FAIL'}</div>
+          </div>`;
+        });
+        box.innerHTML = html;
+      } catch (err) {
+        box.innerHTML = `<p style="color:#f87171;">Failed to run A2A drills: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
     // Initial load
     fetchTelemetry();
     fetchHITLRequests();
@@ -984,6 +1152,78 @@ async def proxy_webhook(request: Request):
 def proxy_drills():
     resp = requests.post(f"{GATEWAY_URL}/api/drills/run", timeout=5.0)
     return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
+
+
+@app.get("/proxy/a2a/cards")
+def proxy_a2a_cards():
+    resp = requests.get(f"{GATEWAY_URL}/api/a2a/cards", timeout=5.0)
+    return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
+
+
+@app.post("/proxy/a2a/message")
+async def proxy_a2a_message(request: Request):
+    body = await request.json()
+    workload = body.get("workload", "")
+    # Inject HMAC proof server-side; browser never sees the signing secret
+    body["agent_token"] = _a2a_token_for(workload)
+    resp = requests.post(f"{GATEWAY_URL}/api/a2a/message", json=body, timeout=5.0)
+    return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
+
+
+@app.get("/proxy/a2a/evidence")
+def proxy_a2a_evidence():
+    resp = requests.get(f"{GATEWAY_URL}/api/a2a/evidence", timeout=5.0)
+    return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
+
+
+@app.post("/proxy/a2a/drills")
+def proxy_a2a_drills():
+    cards = requests.get(f"{GATEWAY_URL}/api/a2a/cards", timeout=4.0).json()
+    report = cards.get("report_resource", f"/reports/quarterly_summary_{TENANT_ID}.pdf")
+    sensitive = "/etc/system_config.yaml"
+
+    def _eval(origin_type: str, workload: str, action: str, resource: str) -> dict:
+        payload = {"origin": {"type": origin_type, "workload": workload}, "action": action, "resource": resource}
+        if origin_type == "agent":
+            payload["agent_token"] = _a2a_token_for(workload)
+        return requests.post(f"{GATEWAY_URL}/api/a2a/evaluate", json=payload, timeout=4.0).json()
+
+    drills = [
+        ("DRILL-001", "agent-origin read of the sensitive config is denied", "agent", "agent:supplier-bot", "read_file", sensitive, "DENY", None),
+        ("DRILL-002", "canary rule flags the sensitive read (rule=deny beats allow)", "agent", "agent:supplier-bot", "read_file", sensitive, "DENY", "deny"),
+        ("DRILL-003", "a different peer agent falls through to human approval", "agent", "agent:other-peer", "read_file", report, "HITL", None),
+        ("DRILL-004", "supplierbot keeps scoped access to the quarterly summary", "agent", "agent:supplier-bot", "read_file", report, "ALLOW", None),
+        ("DRILL-005", "user-origin positive control: report read still allowed", "user", "anika", "read_file", report, "ALLOW", None),
+        ("DRILL-006", "user-origin read of the sensitive config is denied", "user", "anika", "read_file", sensitive, "DENY", None),
+        ("DRILL-007", "other agent-origin actions require human approval", "agent", "agent:supplier-bot", "execute_cmd", "/tmp/cleanup.sh", "HITL", None),
+    ]
+    results = []
+    passed = 0
+    for did, desc, otype, wk, act, res, expect, want_rule in drills:
+        got = _eval(otype, wk, act, res)
+        ok = got.get("decision") == expect and (want_rule is None or got.get("rule") == want_rule)
+        passed += int(ok)
+        results.append({
+            "id": did,
+            "desc": desc,
+            "status": "PASS" if ok else "FAIL",
+            "detail": f"decision={got.get('decision')} rule={got.get('rule')}",
+        })
+    evd = requests.get(f"{GATEWAY_URL}/api/a2a/evidence", timeout=4.0).json()
+    evd_ok = evd.get("chain_valid") is True
+    passed += int(evd_ok)
+    results.append({
+        "id": "DRILL-008",
+        "desc": "evidence journal chain is intact (tamper-evident)",
+        "status": "PASS" if evd_ok else "FAIL",
+        "detail": "evidence chain verified via shared Gateway" if evd_ok else "evidence chain invalid",
+    })
+    return {
+        "total": len(results),
+        "passed": passed,
+        "status": "ALL BOUNDARIES SECURE" if passed == len(results) else "BOUNDARIES OPEN",
+        "results": results,
+    }
 
 if __name__ == "__main__":
     import uvicorn

@@ -11,21 +11,35 @@ services:
       - TENANT_ID=${TENANT_ID:-default}
       - KEYCLOAK_URL=http://keycloak:8080
       - OPA_URL=http://opa:8181
+      - LAB7_AGENT_SECRET=${LAB7_AGENT_SECRET:-}
     ports:
       - "${GATEWAY_PORT:-5000}:5000"
     volumes:
-      - ./:/app/labs
+      - ./lab1_rbac:/app/labs/lab1_rbac
+      - ./lab2_prompt_injection:/app/labs/lab2_prompt_injection
+      - ./lab3_auth_drift:/app/labs/lab3_auth_drift
+      - ./lab4_hitl_sandbox:/app/labs/lab4_hitl_sandbox
+      - ./lab5_telemetry:/app/labs/lab5_telemetry
+      - ./lab6_security_drills:/app/labs/lab6_security_drills
+      - ./lab7_a2a/a2a_policy.rego:/app/labs/lab7_a2a/a2a_policy.rego
+      - ./lab7_a2a/agent_registry.json:/app/labs/lab7_a2a/agent_registry.json
+      - ./lab7_a2a/a2a_eval.py:/app/labs/lab7_a2a/a2a_eval.py
+      - ./lab7_a2a/a2a_identity.py:/app/labs/lab7_a2a/a2a_identity.py
+      - ./lab7_a2a/mock_data:/app/labs/lab7_a2a/mock_data
     depends_on:
       - keycloak
       - opa
 
   opa:
+    
     image: openpolicyagent/opa:latest
     container_name: ${TENANT_ID:-tenant}_opa
     command:
       - "run"
       - "--server"
+      - "--addr=0.0.0.0:8181"
       - "--log-level=debug"
+      - "/policies"
     volumes:
       - ./lab1_rbac/rbac_policy.rego:/policies/rbac_policy.rego
     ports:
@@ -50,5 +64,7 @@ services:
     container_name: ${TENANT_ID:-tenant}_ui
     environment:
       - GATEWAY_URL=http://gateway:5000
+      - TENANT_ID=${TENANT_ID:-default}
+      - LAB7_AGENT_SECRET=${LAB7_AGENT_SECRET:-}
     ports:
       - "${UI_PORT:-8501}:8501"

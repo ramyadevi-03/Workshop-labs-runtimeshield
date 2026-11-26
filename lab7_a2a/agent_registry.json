@@ -1,0 +1,27 @@
+{
+  "comment": "Registered A2A agent cards for Lab 7. The Gateway resolves agent identity from this server-side registry: an unknown workload is denied BEFORE any policy evaluation (ISO A.9.2). Registered does NOT mean trusted for permissions - a compromised agent with a valid card is exactly the confused-deputy scenario.",
+  "agents": [
+    {
+      "workload": "agent:mira",
+      "name": "Mira",
+      "role": "orchestrator-deputy",
+      "owner": "meridian-healthtech",
+      "scopes": ["report-summary", "delegation-forwarding"]
+    },
+    {
+      "workload": "agent:supplier-bot",
+      "name": "SupplierBot",
+      "role": "supplier-integration",
+      "owner": "external-supplier",
+      "scopes": ["supplier-integration"],
+      "note": "Legitimately registered peer agent. Its card is valid - the compromise is behavioral (it forwards injected instructions), which is why identity alone is not authorization."
+    },
+    {
+      "workload": "agent:other-peer",
+      "name": "PeerAnalyst",
+      "role": "data-analyst",
+      "owner": "internal-analytics",
+      "scopes": ["data-analysis"]
+    }
+  ]
+}

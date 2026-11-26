@@ -1,6 +1,6 @@
 # ISO/IEC 42001 Runtime Shield Workshop Labs
 
-Hands-on workshop laboratory demonstrating **Runtime Security Controls, Role-Based Access Control (RBAC), Prompt Injection Containment, Authorization Drift Defense, Human-in-the-Loop (HITL) Sandboxing, and Automated Compliance Drills** for Agentic AI Systems under the **ISO/IEC 42001 Standard**.
+Hands-on workshop laboratory demonstrating **Runtime Security Controls, Role-Based Access Control (RBAC), Prompt Injection Containment, Authorization Drift Defense, Human-in-the-Loop (HITL) Sandboxing, Automated Compliance Drills, and Cross-Agent Trust Abuse (A2A)** for Agentic AI Systems under the **ISO/IEC 42001 Standard**.
 
 ---
 
@@ -81,6 +81,12 @@ python lab5_telemetry/view_telemetry.py
 
 # Lab 6: Execute automated ISO 42001 verification & validation drills
 python lab6_security_drills/run_security_drills.py
+
+# Lab 7: Run the compromised peer agent against the shared Gateway
+python lab7_a2a/mock_a2a_peer.py
+
+# Lab 7: Execute the eight A2A boundary drills (exit code 0 = hardened)
+python lab7_a2a/run_security_drills.py
 ```
 
 ---
@@ -95,6 +101,7 @@ python lab6_security_drills/run_security_drills.py
 | **Lab 4** | [Human-in-the-Loop & OpenSandbox](lab4_hitl_sandbox/README.md) | **A.9.2 & A.6.2.6** | Pause dangerous tool calls (e.g. bash scripts) for administrator review and execute in an isolated container sandbox. |
 | **Lab 5** | [Telemetry & Forensic Auditing](lab5_telemetry/README.md) | **A.6.2.8** | Review tamper-proof forensic audit trails with trace IDs, fraud scores, and intercepted action records. |
 | **Lab 6** | [Automated Compliance Drills](lab6_security_drills/README.md) | **A.6.2.4 & 10.1** | Run automated red-team security assertions to programmatically verify all security boundaries hold firm. |
+| **Lab 7** | [Cross-Agent Trust Abuse (A2A)](lab7_a2a/README.md) | **A.9.2 & A.6.2.6** | Stop a compromised peer agent from borrowing Mira's privileges over the A2A protocol: origin-scoped policy on the shared OPA, honeypot canary, HITL gating. |
 
 ---
 
@@ -118,5 +125,6 @@ ISO-42001-Workshop-Labs/
 ├── lab3_auth_drift/                # Clearance filter & webhook trigger script
 ├── lab4_hitl_sandbox/              # Admin approval console & sandbox configs
 ├── lab5_telemetry/                 # Audit trail viewer & sample forensic logs
-└── lab6_security_drills/           # Automated compliance test suite
+├── lab6_security_drills/           # Automated compliance test suite
+└── lab7_a2a/                       # Cross-agent trust lab: policy, drills, peer console (grader/ = instructor-owned)
 ```
