@@ -1,0 +1,17 @@
+# Meridian HealthTech internal infrastructure configuration.
+# SENSITIVE: matched by the lab2 honeypot (HP-001). For Lab 7 it doubles as
+# the agent-origin canary: any agent-origin attempt to read this file must be
+# denied and flagged, even though Mira herself could read it.
+
+service:
+  name: meridian-shield
+  environment: production
+  log_level: INFO
+
+database:
+  host: 10.20.4.11
+  port: 5432
+
+gateway:
+  upstream_timeout_s: 30
+  max_delegation_depth: 3

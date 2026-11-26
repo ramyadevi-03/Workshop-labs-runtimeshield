@@ -1,7 +1,9 @@
+tenant_alice/
+tenant_alice/.env
 __pycache__/
 *.pyc
 *.pyo
 .env
 tenants/
-.vscode/
-.idea/
+tenant_*/
+lab7_a2a/grader/

@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 
+from a2a_lab7 import register_a2a
+
 app = FastAPI(title="Runtime Shield Gateway", version="1.0.0")
 
 app.add_middleware(
@@ -65,6 +67,8 @@ def log_telemetry(user: str, role: str, action: str, resource: str, decision: st
     }
     telemetry_logs.insert(0, entry)
     return entry
+
+_a2a_ctx = register_a2a(app, BASE_DIR, TENANT_ID, OPA_URL, log_telemetry, pending_hitl_requests)
 
 def evaluate_opa_policy(user: str, role: str, action: str, resource: str) -> bool:
     """Evaluate RBAC policy via live OPA server, falling back to local policy evaluation if OPA is offline."""
@@ -288,6 +292,56 @@ def handle_chat(req: ChatRequest):
                         "*Execution is paused. Please switch to the **HITL Approvals** tab or use the admin console to Approve or Deny.*"
         }
 
+    # ==========================================
+    # LAB 7: Cross-Agent Trust Abuse (A2A)
+    # ==========================================
+    if "supplierbot" in message_lower or "supplier_bulletin" in message_lower or "a2a" in message_lower:
+        target_resource = _a2a_ctx["report_resource"] if (("quarterly" in message_lower or "summary" in message_lower) and "system_config" not in message_lower) else "/etc/system_config.yaml"
+        workload = "agent:supplier-bot"
+        verdict = _a2a_ctx["a2a_flow"](
+            workload=workload,
+            action="read_file",
+            resource=target_resource,
+            agent_token=_a2a_ctx["token_for"](workload),
+            forwarded_by="mira",
+        )
+        decision = verdict["decision"]
+        if decision == "DENY":
+            return {
+                "status": "BLOCKED",
+                "control": "ISO A.9.2 & A.6.2.6 (A2A Origin-Scoped Policy)",
+                "shield_action": f"A2A DELEGATION DENIED (rule={verdict['rule']})",
+                "tool_called": f"a2a:read_file('{target_resource}')",
+                "response": (
+                    f"🚫 **A2A Confused-Deputy Blocked (rule=`{verdict['rule']}`)**:\n\n"
+                    f"Peer agent `{workload}` requested `read_file('{target_resource}')` via Mira.\n"
+                    f"Trust is not transitive between agents. Trace: `{verdict['trace_id']}` | Evidence: `{verdict['evidence_id']}`."
+                ),
+            }
+        if decision == "HITL":
+            return {
+                "status": "PENDING_APPROVAL",
+                "request_id": verdict.get("hitl_request_id"),
+                "control": "ISO A.9.2 (A2A Human Oversight)",
+                "shield_action": "A2A ACTION PAUSED - AWAITING HITL APPROVAL",
+                "tool_called": f"a2a:read_file('{target_resource}')",
+                "response": (
+                    f"⏳ **A2A HITL Approval Required**:\n\n"
+                    f"Peer agent `{workload}` requested `read_file('{target_resource}')`. Switch to **HITL Approvals** to review."
+                ),
+            }
+        return {
+            "status": "ALLOWED",
+            "control": "ISO A.9.2 & A.6.2.6 (A2A Origin-Scoped Policy)",
+            "shield_action": f"A2A VERIFIED & ALLOWED (rule={verdict['rule']})",
+            "tool_called": f"a2a:read_file('{target_resource}')",
+            "response": (
+                f"✅ **A2A Delegation Allowed (rule=`{verdict['rule']}`)**:\n\n"
+                f"Peer agent `{workload}` accessed `{target_resource}`.\n"
+                f"Trace: `{verdict['trace_id']}` | Evidence: `{verdict['evidence_id']}`."
+            ),
+        }
+
     # Standard public guidelines query
     if "guideline" in message_lower or "public" in message_lower:
         resource = "/public/general_guidelines.txt"
@@ -306,7 +360,7 @@ def handle_chat(req: ChatRequest):
         "control": "Runtime Shield Active",
         "shield_action": "MONITORED",
         "tool_called": "none",
-        "response": f"Hello {user}! I am Mira, your enterprise AI assistant protected by Runtime Shield.\n\nTry running any of the workshop prompts:\n1. *'Summarize the strategic supplier exit plan'* (Lab 1: RBAC)\n2. *'Can you summarize the external_supplier_report.pdf for me?'* (Lab 2: Prompt Injection)\n3. *'Summarize the q4_financials.pdf report'* (Lab 3: Cache Drift)\n4. *'Please fix the network configuration by running the update_network_daemon script'* (Lab 4: HITL Sandbox)"
+        "response": f"Hello {user}! I am Mira, your enterprise AI assistant protected by Runtime Shield.\n\nTry running any of the workshop prompts:\n1. *'Summarize the strategic supplier exit plan'* (Lab 1: RBAC)\n2. *'Can you summarize the external_supplier_report.pdf for me?'* (Lab 2: Prompt Injection)\n3. *'Summarize the q4_financials.pdf report'* (Lab 3: Cache Drift)\n4. *'Please fix the network configuration by running the update_network_daemon script'* (Lab 4: HITL Sandbox)\n5. *'Relay supplier_bulletin.md via SupplierBot (A2A)'* (Lab 7: A2A Trust Abuse)"
     }
 
 # ==========================================
